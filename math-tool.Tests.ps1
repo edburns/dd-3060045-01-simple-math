@@ -39,6 +39,35 @@ Describe 'Get-Fibonacci' {
     }
 }
 
+Describe 'Get-Factorial' {
+    It 'returns one for N=0' {
+        $result = @(Get-Factorial 0)
+
+        $result | Should -HaveCount 1
+        $result[0] | Should -Be 1
+    }
+
+    It 'returns one for N=1' {
+        $result = @(Get-Factorial 1)
+
+        $result | Should -HaveCount 1
+        $result[0] | Should -Be 1
+    }
+
+    It 'returns 120 for N=5' {
+        $result = @(Get-Factorial 5)
+
+        $result | Should -HaveCount 1
+        $result[0] | Should -Be 120
+    }
+
+    It 'rejects negative and non-integer inputs' {
+        { Get-Factorial '-1' } | Should -Throw
+        { Get-Factorial 1.0 } | Should -Throw
+        { Get-Factorial 1.5 } | Should -Throw
+    }
+}
+
 Describe 'math-tool.ps1 CLI' {
     BeforeAll {
         $scriptPath = Join-Path $PSScriptRoot 'math-tool.ps1'
@@ -73,11 +102,63 @@ Describe 'math-tool.ps1 CLI' {
         $stderr | Should -Be ''
     }
 
+    It 'writes exactly one factorial result line for N=5 and exits successfully' {
+        $startInfo = [Diagnostics.ProcessStartInfo]::new()
+        $startInfo.FileName = $pwshPath
+        $startInfo.ArgumentList.Add('-NoLogo')
+        $startInfo.ArgumentList.Add('-NoProfile')
+        $startInfo.ArgumentList.Add('-File')
+        $startInfo.ArgumentList.Add($scriptPath)
+        $startInfo.ArgumentList.Add('-N')
+        $startInfo.ArgumentList.Add('5')
+        $startInfo.ArgumentList.Add('-Operation')
+        $startInfo.ArgumentList.Add('factorial')
+        $startInfo.RedirectStandardOutput = $true
+        $startInfo.RedirectStandardError = $true
+        $startInfo.UseShellExecute = $false
+
+        $process = [Diagnostics.Process]::new()
+        $process.StartInfo = $startInfo
+        $process.Start() | Should -BeTrue
+        $stdoutTask = $process.StandardOutput.ReadToEndAsync()
+        $stderrTask = $process.StandardError.ReadToEndAsync()
+        $exitTask = $process.WaitForExitAsync()
+        [Threading.Tasks.Task]::WhenAll($exitTask, $stdoutTask, $stderrTask).Wait()
+        $stdout = $stdoutTask.Result
+        $stderr = $stderrTask.Result
+
+        $process.ExitCode | Should -Be 0
+        $stdout | Should -Be "Factorial(5) = 120$([Environment]::NewLine)"
+        $stderr | Should -Be ''
+    }
+
+    It 'executes both operations explicitly in isolated child processes' {
+        foreach ($operation in @('fibonacci', 'factorial')) {
+            $expectedOutput = if ($operation -eq 'fibonacci') {
+                "Fibonacci(5) = 5$([Environment]::NewLine)"
+            }
+            else {
+                "Factorial(5) = 120$([Environment]::NewLine)"
+            }
+
+            $output = & $pwshPath -NoLogo -NoProfile -File $scriptPath -N 5 -Operation $operation 2>&1
+            $LASTEXITCODE | Should -Be 0
+            ($output -join "`n") | Should -Be $expectedOutput.TrimEnd()
+        }
+    }
+
     It 'rejects invalid inputs without producing a result' {
         foreach ($invalid in @('-1', '1.5')) {
             $output = & $pwshPath -NoLogo -NoProfile -File $scriptPath -N $invalid 2>&1
             $LASTEXITCODE | Should -Not -Be 0
             ($output -join "`n") | Should -Not -Match '^Fibonacci\('
+            ($output -join "`n") | Should -Not -Match '^Factorial\('
         }
+    }
+
+    It 'rejects unsupported operations without producing a result' {
+        $output = & $pwshPath -NoLogo -NoProfile -File $scriptPath -N 5 -Operation unsupported 2>&1
+        $LASTEXITCODE | Should -Not -Be 0
+        ($output -join "`n") | Should -Not -Match '^(Fibonacci|Factorial)\('
     }
 }
