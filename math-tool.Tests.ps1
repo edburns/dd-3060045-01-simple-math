@@ -15,7 +15,7 @@ Describe 'Get-Fibonacci' {
         Get-Fibonacci 1 | Should -Be 1
     }
 
-    It 'returns the expected representative value' {
+    It 'returns 5 for N=5' {
         Get-Fibonacci 5 | Should -Be 5
     }
 
@@ -47,13 +47,14 @@ Describe 'math-tool.ps1 CLI' {
         $process = [Diagnostics.Process]::new()
         $process.StartInfo = $startInfo
         $process.Start() | Should -BeTrue
-        $stdout = $process.StandardOutput.ReadToEnd()
-        $stderr = $process.StandardError.ReadToEnd()
+        $stdoutTask = $process.StandardOutput.ReadToEndAsync()
+        $stderrTask = $process.StandardError.ReadToEndAsync()
         $process.WaitForExit()
+        $stdout = $stdoutTask.Result
+        $stderr = $stderrTask.Result
 
         $process.ExitCode | Should -Be 0
-        $stdout.TrimEnd("`r", "`n") | Should -Be 'Fibonacci(5) = 5'
-        ($stdout.TrimEnd("`r", "`n") -split "`r?`n").Count | Should -Be 1
+        $stdout | Should -Be "Fibonacci(5) = 5$([Environment]::NewLine)"
         $stderr | Should -Be ''
     }
 
