@@ -12,19 +12,29 @@ Describe 'Get-Fibonacci' {
     }
 
     It 'returns one for N=1' {
-        Get-Fibonacci 1 | Should -Be 1
+        $result = @(Get-Fibonacci 1)
+
+        $result | Should -HaveCount 1
+        $result[0] | Should -Be 1
     }
 
     It 'returns 5 for N=5' {
-        Get-Fibonacci 5 | Should -Be 5
+        $result = @(Get-Fibonacci 5)
+
+        $result | Should -HaveCount 1
+        $result[0] | Should -Be 5
     }
 
     It 'returns 55 for N=10' {
-        Get-Fibonacci 10 | Should -Be 55
+        $result = @(Get-Fibonacci 10)
+
+        $result | Should -HaveCount 1
+        $result[0] | Should -Be 55
     }
 
     It 'rejects negative and non-integer inputs' {
         { Get-Fibonacci '-1' } | Should -Throw
+        { Get-Fibonacci 1.0 } | Should -Throw
         { Get-Fibonacci 1.5 } | Should -Throw
     }
 }

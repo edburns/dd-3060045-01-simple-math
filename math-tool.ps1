@@ -10,11 +10,17 @@ function Get-Fibonacci {
         [object] $N
     )
 
-    $text = [Convert]::ToString($N, [Globalization.CultureInfo]::InvariantCulture)
-    if ($N -is [bool] -or $text -notmatch '^\d+$') {
+    $isIntegerType = $N -is [sbyte] -or $N -is [byte] -or
+        $N -is [int16] -or $N -is [uint16] -or
+        $N -is [int32] -or $N -is [uint32] -or
+        $N -is [int64] -or $N -is [uint64] -or
+        $N -is [bigint]
+    $isDigitString = $N -is [string] -and $N -match '^\d+$'
+    if (-not $isIntegerType -and -not $isDigitString) {
         throw 'N must be a non-negative integer.'
     }
 
+    $text = [Convert]::ToString($N, [Globalization.CultureInfo]::InvariantCulture)
     [bigint] $index = 0
     if (-not [bigint]::TryParse($text, [Globalization.NumberStyles]::None,
             [Globalization.CultureInfo]::InvariantCulture, [ref] $index)) {
