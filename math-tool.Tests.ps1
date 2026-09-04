@@ -24,7 +24,7 @@ Describe 'Get-Fibonacci' {
     }
 
     It 'rejects negative and non-integer inputs' {
-        { Get-Fibonacci -1 } | Should -Throw
+        { Get-Fibonacci '-1' } | Should -Throw
         { Get-Fibonacci 1.5 } | Should -Throw
     }
 }
