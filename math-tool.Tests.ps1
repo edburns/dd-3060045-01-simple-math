@@ -19,6 +19,10 @@ Describe 'Get-Fibonacci' {
         Get-Fibonacci 5 | Should -Be 5
     }
 
+    It 'returns 55 for N=10' {
+        Get-Fibonacci 10 | Should -Be 55
+    }
+
     It 'rejects negative and non-integer inputs' {
         { Get-Fibonacci -1 } | Should -Throw
         { Get-Fibonacci 1.5 } | Should -Throw
@@ -50,6 +54,7 @@ Describe 'math-tool.ps1 CLI' {
         $stdoutTask = $process.StandardOutput.ReadToEndAsync()
         $stderrTask = $process.StandardError.ReadToEndAsync()
         $process.WaitForExit()
+        [Threading.Tasks.Task]::WhenAll($stdoutTask, $stderrTask).Wait()
         $stdout = $stdoutTask.Result
         $stderr = $stderrTask.Result
 

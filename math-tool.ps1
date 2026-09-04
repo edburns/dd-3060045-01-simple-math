@@ -24,7 +24,7 @@ function Get-Fibonacci {
     [bigint] $previous = 0
     [bigint] $current = 1
     for ($i = 0; $i -lt $index; $i++) {
-        $next = $previous + $current
+        [bigint] $next = $previous + $current
         $previous = $current
         $current = $next
     }
