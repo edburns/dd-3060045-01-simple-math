@@ -15,15 +15,15 @@ function Get-Fibonacci {
         throw 'N must be a non-negative integer.'
     }
 
-    [int] $index = 0
-    if (-not [int]::TryParse($text, [Globalization.NumberStyles]::None,
+    [bigint] $index = 0
+    if (-not [bigint]::TryParse($text, [Globalization.NumberStyles]::None,
             [Globalization.CultureInfo]::InvariantCulture, [ref] $index)) {
         throw 'N must be a non-negative integer.'
     }
 
     [bigint] $previous = 0
     [bigint] $current = 1
-    for ($i = 0; $i -lt $index; $i++) {
+    for ([bigint] $i = 0; $i -lt $index; $i = $i + 1) {
         [bigint] $next = $previous + $current
         $previous = $current
         $current = $next
