@@ -72,93 +72,92 @@ Describe 'math-tool.ps1 CLI' {
     BeforeAll {
         $scriptPath = Join-Path $PSScriptRoot 'math-tool.ps1'
         $pwshPath = (Get-Command pwsh).Source
+
+        function Invoke-MathToolProcess {
+            param(
+                [Parameter(Mandatory = $true)]
+                [string] $N,
+                [string] $Operation
+            )
+
+            $startInfo = [Diagnostics.ProcessStartInfo]::new()
+            $startInfo.FileName = $pwshPath
+            $startInfo.ArgumentList.Add('-NoLogo')
+            $startInfo.ArgumentList.Add('-NoProfile')
+            $startInfo.ArgumentList.Add('-File')
+            $startInfo.ArgumentList.Add($scriptPath)
+            $startInfo.ArgumentList.Add('-N')
+            $startInfo.ArgumentList.Add($N)
+            if ($PSBoundParameters.ContainsKey('Operation')) {
+                $startInfo.ArgumentList.Add('-Operation')
+                $startInfo.ArgumentList.Add($Operation)
+            }
+            $startInfo.RedirectStandardOutput = $true
+            $startInfo.RedirectStandardError = $true
+            $startInfo.UseShellExecute = $false
+
+            $process = [Diagnostics.Process]::new()
+            $process.StartInfo = $startInfo
+            $process.Start() | Out-Null
+            $stdoutTask = $process.StandardOutput.ReadToEndAsync()
+            $stderrTask = $process.StandardError.ReadToEndAsync()
+            $exitTask = $process.WaitForExitAsync()
+            [Threading.Tasks.Task]::WhenAll($exitTask, $stdoutTask, $stderrTask).Wait()
+
+            return [pscustomobject]@{
+                ExitCode = $process.ExitCode
+                StdOut = $stdoutTask.Result
+                StdErr = $stderrTask.Result
+            }
+        }
     }
 
     It 'writes exactly one result line for N=5 and exits successfully' {
-        $startInfo = [Diagnostics.ProcessStartInfo]::new()
-        $startInfo.FileName = $pwshPath
-        $startInfo.ArgumentList.Add('-NoLogo')
-        $startInfo.ArgumentList.Add('-NoProfile')
-        $startInfo.ArgumentList.Add('-File')
-        $startInfo.ArgumentList.Add($scriptPath)
-        $startInfo.ArgumentList.Add('-N')
-        $startInfo.ArgumentList.Add('5')
-        $startInfo.RedirectStandardOutput = $true
-        $startInfo.RedirectStandardError = $true
-        $startInfo.UseShellExecute = $false
+        $result = Invoke-MathToolProcess -N '5'
 
-        $process = [Diagnostics.Process]::new()
-        $process.StartInfo = $startInfo
-        $process.Start() | Should -BeTrue
-        $stdoutTask = $process.StandardOutput.ReadToEndAsync()
-        $stderrTask = $process.StandardError.ReadToEndAsync()
-        $exitTask = $process.WaitForExitAsync()
-        [Threading.Tasks.Task]::WhenAll($exitTask, $stdoutTask, $stderrTask).Wait()
-        $stdout = $stdoutTask.Result
-        $stderr = $stderrTask.Result
-
-        $process.ExitCode | Should -Be 0
-        $stdout | Should -Be "Fibonacci(5) = 5$([Environment]::NewLine)"
-        $stderr | Should -Be ''
+        $result.ExitCode | Should -Be 0
+        $result.StdOut | Should -Be "Fibonacci(5) = 5$([Environment]::NewLine)"
+        $result.StdErr | Should -Be ''
     }
 
     It 'writes exactly one factorial result line for N=5 and exits successfully' {
-        $startInfo = [Diagnostics.ProcessStartInfo]::new()
-        $startInfo.FileName = $pwshPath
-        $startInfo.ArgumentList.Add('-NoLogo')
-        $startInfo.ArgumentList.Add('-NoProfile')
-        $startInfo.ArgumentList.Add('-File')
-        $startInfo.ArgumentList.Add($scriptPath)
-        $startInfo.ArgumentList.Add('-N')
-        $startInfo.ArgumentList.Add('5')
-        $startInfo.ArgumentList.Add('-Operation')
-        $startInfo.ArgumentList.Add('factorial')
-        $startInfo.RedirectStandardOutput = $true
-        $startInfo.RedirectStandardError = $true
-        $startInfo.UseShellExecute = $false
+        $result = Invoke-MathToolProcess -N '5' -Operation 'factorial'
 
-        $process = [Diagnostics.Process]::new()
-        $process.StartInfo = $startInfo
-        $process.Start() | Should -BeTrue
-        $stdoutTask = $process.StandardOutput.ReadToEndAsync()
-        $stderrTask = $process.StandardError.ReadToEndAsync()
-        $exitTask = $process.WaitForExitAsync()
-        [Threading.Tasks.Task]::WhenAll($exitTask, $stdoutTask, $stderrTask).Wait()
-        $stdout = $stdoutTask.Result
-        $stderr = $stderrTask.Result
-
-        $process.ExitCode | Should -Be 0
-        $stdout | Should -Be "Factorial(5) = 120$([Environment]::NewLine)"
-        $stderr | Should -Be ''
+        $result.ExitCode | Should -Be 0
+        $result.StdOut | Should -Be "Factorial(5) = 120$([Environment]::NewLine)"
+        $result.StdErr | Should -Be ''
     }
 
-    It 'executes both operations explicitly in isolated child processes' {
-        foreach ($operation in @('fibonacci', 'factorial')) {
-            $expectedOutput = if ($operation -eq 'fibonacci') {
-                "Fibonacci(5) = 5$([Environment]::NewLine)"
-            }
-            else {
-                "Factorial(5) = 120$([Environment]::NewLine)"
-            }
+    It 'dispatches fibonacci in an isolated child process' {
+        $result = Invoke-MathToolProcess -N '8' -Operation 'fibonacci'
 
-            $output = & $pwshPath -NoLogo -NoProfile -File $scriptPath -N 5 -Operation $operation 2>&1
-            $LASTEXITCODE | Should -Be 0
-            ($output -join "`n") | Should -Be $expectedOutput.TrimEnd()
-        }
+        $result.ExitCode | Should -Be 0
+        $result.StdOut | Should -Be "Fibonacci(8) = 21$([Environment]::NewLine)"
+        $result.StdErr | Should -Be ''
+    }
+
+    It 'dispatches factorial in an isolated child process' {
+        $result = Invoke-MathToolProcess -N '4' -Operation 'factorial'
+
+        $result.ExitCode | Should -Be 0
+        $result.StdOut | Should -Be "Factorial(4) = 24$([Environment]::NewLine)"
+        $result.StdErr | Should -Be ''
     }
 
     It 'rejects invalid inputs without producing a result' {
         foreach ($invalid in @('-1', '1.5')) {
             $output = & $pwshPath -NoLogo -NoProfile -File $scriptPath -N $invalid 2>&1
             $LASTEXITCODE | Should -Not -Be 0
-            ($output -join "`n") | Should -Not -Match '^Fibonacci\('
-            ($output -join "`n") | Should -Not -Match '^Factorial\('
+            $outputText = ($output -join "`n")
+            $outputText | Should -Not -Match '^Fibonacci\('
+            $outputText | Should -Not -Match '^Factorial\('
         }
     }
 
-    It 'rejects unsupported operations without producing a result' {
+    It 'rejects unsupported operations via parameter validation without producing a result' {
         $output = & $pwshPath -NoLogo -NoProfile -File $scriptPath -N 5 -Operation unsupported 2>&1
         $LASTEXITCODE | Should -Not -Be 0
-        ($output -join "`n") | Should -Not -Match '^(Fibonacci|Factorial)\('
+        $outputText = ($output -join "`n")
+        $outputText | Should -Not -Match '^(Fibonacci|Factorial)\('
     }
 }

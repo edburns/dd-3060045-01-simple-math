@@ -72,15 +72,12 @@ if ($MyInvocation.InvocationName -ne '.') {
         throw 'N must be a non-negative integer.'
     }
 
-    $value = switch ($Operation) {
-        'fibonacci' { Get-Fibonacci $N }
-        'factorial' { Get-Factorial $N }
-        default { throw 'Operation must be either fibonacci or factorial.' }
-    }
     if ($Operation -eq 'fibonacci') {
+        $value = Get-Fibonacci $N
         Write-Output "Fibonacci($N) = $value"
     }
     else {
+        $value = Get-Factorial $N
         Write-Output "Factorial($N) = $value"
     }
 }
