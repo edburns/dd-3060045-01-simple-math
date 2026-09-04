@@ -53,8 +53,8 @@ Describe 'math-tool.ps1 CLI' {
         $process.Start() | Should -BeTrue
         $stdoutTask = $process.StandardOutput.ReadToEndAsync()
         $stderrTask = $process.StandardError.ReadToEndAsync()
-        $process.WaitForExit()
-        [Threading.Tasks.Task]::WhenAll($stdoutTask, $stderrTask).Wait()
+        $exitTask = $process.WaitForExitAsync()
+        [Threading.Tasks.Task]::WhenAll($exitTask, $stdoutTask, $stderrTask).Wait()
         $stdout = $stdoutTask.Result
         $stderr = $stderrTask.Result
 
