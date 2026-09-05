@@ -1,10 +1,13 @@
 [CmdletBinding()]
 param(
     [Parameter(Position = 0)]
-    [object] $N
+    [object] $N,
+    [Parameter()]
+    [ValidateSet('fibonacci', 'factorial')]
+    [string] $Operation = 'fibonacci'
 )
 
-function Get-Fibonacci {
+function Get-ValidatedNonNegativeInteger {
     param(
         [Parameter(Mandatory = $true, Position = 0)]
         [object] $N
@@ -27,6 +30,17 @@ function Get-Fibonacci {
         throw 'N must be a non-negative integer.'
     }
 
+    return $index
+}
+
+function Get-Fibonacci {
+    param(
+        [Parameter(Mandatory = $true, Position = 0)]
+        [object] $N
+    )
+
+    [bigint] $index = Get-ValidatedNonNegativeInteger $N
+
     [bigint] $previous = 0
     [bigint] $current = 1
     for ([bigint] $i = 0; $i -lt $index; $i = $i + 1) {
@@ -38,11 +52,32 @@ function Get-Fibonacci {
     return $previous
 }
 
+function Get-Factorial {
+    param(
+        [Parameter(Mandatory = $true, Position = 0)]
+        [object] $N
+    )
+
+    [bigint] $index = Get-ValidatedNonNegativeInteger $N
+    [bigint] $result = 1
+    for ([bigint] $i = 2; $i -le $index; $i = $i + 1) {
+        $result = $result * $i
+    }
+
+    return $result
+}
+
 if ($MyInvocation.InvocationName -ne '.') {
     if ($null -eq $N) {
         throw 'N must be a non-negative integer.'
     }
 
-    $value = Get-Fibonacci $N
-    Write-Output "Fibonacci($N) = $value"
+    if ($Operation -eq 'fibonacci') {
+        $value = Get-Fibonacci $N
+        Write-Output "Fibonacci($N) = $value"
+    }
+    else {
+        $value = Get-Factorial $N
+        Write-Output "Factorial($N) = $value"
+    }
 }
