@@ -18,14 +18,14 @@ function Get-ValidatedNonNegativeInteger {
         $N -is [int32] -or $N -is [uint32] -or
         $N -is [int64] -or $N -is [uint64] -or
         $N -is [bigint]
-    $isDigitString = $N -is [string] -and $N.Trim() -match '^\d+$'
+    $isDigitString = $N -is [string] -and $N -match '^\d+$'
     if (-not $isIntegerType -and -not $isDigitString) {
         throw 'N must be a non-negative integer.'
     }
 
     $text = [Convert]::ToString($N, [Globalization.CultureInfo]::InvariantCulture)
     [bigint] $index = 0
-    if (-not [bigint]::TryParse($text.Trim(), [Globalization.NumberStyles]::None,
+    if (-not [bigint]::TryParse($text, [Globalization.NumberStyles]::None,
             [Globalization.CultureInfo]::InvariantCulture, [ref] $index)) {
         throw 'N must be a non-negative integer.'
     }

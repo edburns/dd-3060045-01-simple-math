@@ -36,6 +36,7 @@ Describe 'Get-Fibonacci' {
         { Get-Fibonacci '-1' } | Should -Throw
         { Get-Fibonacci 1.0 } | Should -Throw
         { Get-Fibonacci 1.5 } | Should -Throw
+        { Get-Fibonacci ' 5 ' } | Should -Throw
     }
 }
 
@@ -65,6 +66,7 @@ Describe 'Get-Factorial' {
         { Get-Factorial '-1' } | Should -Throw
         { Get-Factorial 1.0 } | Should -Throw
         { Get-Factorial 1.5 } | Should -Throw
+        { Get-Factorial ' 5 ' } | Should -Throw
     }
 }
 
@@ -88,7 +90,8 @@ Describe 'math-tool.ps1 CLI' {
             $startInfo.ArgumentList.Add($scriptPath)
             $startInfo.ArgumentList.Add('-N')
             $startInfo.ArgumentList.Add($N)
-            if ($PSBoundParameters.ContainsKey('Operation')) {
+            if ($PSBoundParameters.ContainsKey('Operation') -and
+                    -not [string]::IsNullOrEmpty($Operation)) {
                 $startInfo.ArgumentList.Add('-Operation')
                 $startInfo.ArgumentList.Add($Operation)
             }
@@ -114,6 +117,14 @@ Describe 'math-tool.ps1 CLI' {
 
     It 'writes exactly one result line for N=5 and exits successfully' {
         $result = Invoke-MathToolProcess -N '5'
+
+        $result.ExitCode | Should -Be 0
+        $result.StdOut | Should -Be "Fibonacci(5) = 5$([Environment]::NewLine)"
+        $result.StdErr | Should -Be ''
+    }
+
+    It 'uses the default operation when an empty operation is supplied to the process helper' {
+        $result = Invoke-MathToolProcess -N '5' -Operation $null
 
         $result.ExitCode | Should -Be 0
         $result.StdOut | Should -Be "Fibonacci(5) = 5$([Environment]::NewLine)"
